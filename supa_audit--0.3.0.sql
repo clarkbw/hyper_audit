@@ -11,6 +11,8 @@
         to enable indexed linear time lookup of a primary key's version history
 */
 
+-- Timescale Cloud does not have this installed by default
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Namespace to "audit"
 create schema if not exists audit;
@@ -103,6 +105,45 @@ create index record_version_ts
 create index record_version_table_oid
     on audit.record_version(table_oid);
 
+do $$
+    begin
+        -- Detect if we have the timescaledb extension installed
+        -- convert table to hypertable if so
+        if (
+            select
+                count(extname) = 1
+            from
+                pg_extension
+            where
+                extname='timescaledb'
+            )
+            then
+
+            -- cannot have the id be a primary key anymore for hypertables to work
+            alter table audit.record_version DROP CONSTRAINT IF EXISTS record_version_pkey;
+
+            -- recreate indexes w/ ts included
+            drop index if exists audit.record_version_record_id;
+            create index record_version_record_id
+                on audit.record_version(record_id, ts)
+                where record_id is not null;
+
+            drop index if exists audit.record_version_old_record_id;
+            create index record_version_old_record_id
+                on audit.record_version(old_record_id, ts)
+                where old_record_id is not null;
+
+            -- don't need an index on timestamps
+            drop index if exists audit.record_version_ts;
+
+            drop index if exists audit.record_version_table_oid;
+            create index record_version_table_oid
+                on audit.record_version(table_oid, ts);
+
+            perform create_hypertable('audit.record_version', 'ts');
+        end if;
+    end
+$$ LANGUAGE plpgsql;
 
 create or replace function audit.primary_key_columns(entity_oid oid)
     returns text[]
