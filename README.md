@@ -58,10 +58,8 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
 ```javascript
     await this.client.stravaAccessToken.upsert({
       where: {
-        strava_slack: {
+        strava: {
           athlete_id: installation.athlete_id,
-          slack_team_id: installation.slack_team_id,
-          slack_user_id: installation.slack_user_id,
         },
       },
       update: {
@@ -70,8 +68,6 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
       },
       create: {
         athlete_id: installation.athlete_id,
-        slack_team_id: installation.slack_team_id,
-        slack_user_id: installation.slack_user_id,
         access_token: installation.access_token,
         expires_at: installation.expires_at,
         scopes: installation.scopes,
@@ -80,10 +76,8 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
 
     await this.client.stravaRefreshToken.upsert({
       where: {
-        strava_slack: {
+        strava: {
           athlete_id: installation.athlete_id,
-          slack_team_id: installation.slack_team_id,
-          slack_user_id: installation.slack_user_id,
         },
       },
       update: {
@@ -92,8 +86,6 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
       },
       create: {
         athlete_id: installation.athlete_id,
-        slack_team_id: installation.slack_team_id,
-        slack_user_id: installation.slack_user_id,
         refresh_token: installation.refresh_token,
         expires_at: installation.expires_at,
       },
