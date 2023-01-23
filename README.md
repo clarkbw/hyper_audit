@@ -1,14 +1,14 @@
-# `supa_audit`
+# `hyper_audit`
 
 <p>
 <a href=""><img src="https://img.shields.io/badge/postgresql-11+-blue.svg" alt="PostgreSQL version" height="18"></a>
-<a href="https://github.com/supabase/supa_audit/actions"><img src="https://github.com/supabase/supa_audit/actions/workflows/test.yaml/badge.svg" alt="Tests" height="18"></a>
+<a href="https://github.com/clarkbw/hyper_audit/actions"><img src="https://github.com/clarkbw/hyper_audit/actions/workflows/test.yaml/badge.svg" alt="Tests" height="18"></a>
 
 </p>
 
 ---
 
-**Source Code**: <a href="https://github.com/supabase/supa_audit" target="_blank">https://github.com/supabase/supa_audit</a>
+**Source Code**: <a href="https://github.com/clarkbw/hyper_audit" target="_blank">https://github.com/clarkbw/hyper_audit</a>
 
 ---
 
@@ -18,6 +18,90 @@ The audit table, `audit.record_version`, leverages each records primary key valu
 
 
 ## Usage
+
+
+### OAuth
+
+With OAuth the optimal pattern is to only have 1 row per access token / user such that you aren't scanning through thousands of old rows but presenting a view that only has the valid information. While the scanning of old rows can be completed quickly with an index the table source balloons with data that is no longer useful or valid and this is done simply for having some audit record or simplifying the application developers usage.
+
+Given the following pattern which is recommended by the [strava developer authentication guide](https://developers.strava.com/docs/authentication/) of having an `access_token` and `refresh_token` table. We enable tracking on those tables such that we can `upsert` data as needed yet we're keeping old access and refresh tokens in case of error.
+
+```sql
+create table access_token ( id serial primary key, customer_id int unique not null, token varchar not null, expires_at timestamp not null default now() );
+
+create table refresh_token ( id serial primary key, access_token_id int unique not null, token varchar not null, expires_at timestamp not null default now() );
+
+
+select audit.enable_tracking('public.access_token'::regclass);
+select audit.enable_tracking('public.refresh_token'::regclass);
+
+-- upsert avoids conflicting customer ids and provides UPDATE audit
+
+begin;
+
+with ac as (
+insert into access_token ( customer_id, token, expires_at ) values ( floor(random() * 10 + 1)::int, gen_random_uuid(), now() + interval '1 day' )
+on conflict (customer_id)
+do update set token = gen_random_uuid(), expires_at = now() + interval '1 day' returning id, expires_at
+)
+
+insert into refresh_token ( access_token_id, token, expires_at ) values ( (select id from ac), gen_random_uuid(), (select expires_at from ac) )
+on conflict (access_token_id)
+do update set token = gen_random_uuid(), expires_at = (select expires_at from ac);
+
+commit;
+
+```
+
+A customer could use the following Prisma JS to do an `upsert` whenever they receive a new or updated access token. This simplifies the application developer code tremedously and keeps our data storage to a minimal; only one row of valid data. 
+
+```javascript
+    await this.client.stravaAccessToken.upsert({
+      where: {
+        strava_slack: {
+          athlete_id: installation.athlete_id,
+          slack_team_id: installation.slack_team_id,
+          slack_user_id: installation.slack_user_id,
+        },
+      },
+      update: {
+        access_token: installation.access_token,
+        expires_at: installation.expires_at,
+      },
+      create: {
+        athlete_id: installation.athlete_id,
+        slack_team_id: installation.slack_team_id,
+        slack_user_id: installation.slack_user_id,
+        access_token: installation.access_token,
+        expires_at: installation.expires_at,
+        scopes: installation.scopes,
+      },
+    });
+
+    await this.client.stravaRefreshToken.upsert({
+      where: {
+        strava_slack: {
+          athlete_id: installation.athlete_id,
+          slack_team_id: installation.slack_team_id,
+          slack_user_id: installation.slack_user_id,
+        },
+      },
+      update: {
+        refresh_token: installation.refresh_token,
+        expires_at: installation.expires_at,
+      },
+      create: {
+        athlete_id: installation.athlete_id,
+        slack_team_id: installation.slack_team_id,
+        slack_user_id: installation.slack_user_id,
+        refresh_token: installation.refresh_token,
+        expires_at: installation.expires_at,
+      },
+    });
+    
+```
+
+### Account
 
 ```sql
 create extension supa_audit cascade;
