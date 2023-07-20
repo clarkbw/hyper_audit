@@ -95,8 +95,6 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
 ### Services
 
 ```sql
-create extension supa_audit cascade;
-
 create table service ( 
     id serial primary key, 
     created timestamp with time zone not null default now(),
@@ -107,7 +105,7 @@ create table service (
 
 
 -- Enable auditing
-select audit.enable_tracking('public.account'::regclass);
+select audit.enable_tracking('public.service'::regclass);
 
 -- Insert a record
 insert into public.service(name, service_id, project_id)
