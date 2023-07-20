@@ -121,7 +121,7 @@ set name = 'default'; -- whoops
 -- Review the history
 select * from audit.record_version;
 
-select old_record, record from audit.record_version;
+select old_record, record from audit.record_version where op = 'UPDATE';
 ```
 
 
