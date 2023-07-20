@@ -92,6 +92,38 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
     });
     
 ```
+### Services
+
+``
+create extension supa_audit cascade;
+
+create table service ( 
+    id serial primary key, 
+    created timestamp with time zone not null default now(),
+    name text,
+    service_id text,
+    project_id text
+);
+
+
+-- Enable auditing
+select audit.enable_tracking('public.account'::regclass);
+
+-- Insert a record
+insert into public.service(name, service_id, project_id)
+values ('Foo Barsworth', 'lskdf098', 'lksjasf09'), ('company prod', 'lskdss98', 'lkhjdf09'), ('company dev', 'lskwert098', 'lksdfgdf09'), ('company staging', 'lskdadsf98', 'lkgjdf09'), ('owl [dev]', 'ldasddf098', 'lksjdf09'), ('owl [prod]', 'lggdf098', 'lksjghf09');
+
+-- Update a record
+update public.service
+set name = 'default'; -- whoops
+
+-- Review the history
+select
+    *
+from
+    audit.record_version;
+```
+
 
 ### Account
 
