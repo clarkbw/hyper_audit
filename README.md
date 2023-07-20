@@ -94,7 +94,7 @@ A customer could use the following Prisma JS to do an `upsert` whenever they rec
 ```
 ### Services
 
-``
+```sql
 create extension supa_audit cascade;
 
 create table service ( 
@@ -122,6 +122,7 @@ select
     *
 from
     audit.record_version;
+
 ```
 
 
