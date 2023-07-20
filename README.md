@@ -122,6 +122,10 @@ set name = 'default'; -- whoops
 select * from audit.record_version;
 
 select old_record, record from audit.record_version where op = 'UPDATE';
+
+-- Revert naming problem
+UPDATE service SET name=tmt.name FROM (select (old_record ->> 'id')::integer as id, old_record ->> 'name' as name from audit.record_version where op = 'UPDATE') as tmt WHERE service.id=tmt.id;
+
 ```
 
 
