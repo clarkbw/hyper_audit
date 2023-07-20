@@ -111,16 +111,17 @@ select audit.enable_tracking('public.service'::regclass);
 insert into public.service(name, service_id, project_id)
 values ('Foo Barsworth', 'lskdf098', 'lksjasf09'), ('company prod', 'lskdss98', 'lkhjdf09'), ('company dev', 'lskwert098', 'lksdfgdf09'), ('company staging', 'lskdadsf98', 'lkgjdf09'), ('owl [dev]', 'ldasddf098', 'lksjdf09'), ('owl [prod]', 'lggdf098', 'lksjghf09');
 
+-- See records
+select * from service;
+
 -- Update a record
 update public.service
 set name = 'default'; -- whoops
 
 -- Review the history
-select
-    *
-from
-    audit.record_version;
+select * from audit.record_version;
 
+select old_record, record from audit.record_version;
 ```
 
 
